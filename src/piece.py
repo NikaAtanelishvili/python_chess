@@ -26,3 +26,28 @@ class King(Piece):
         col_diff = abs(end_col_pos - start_col_pos)
 
         return max(row_diff, col_diff) == 1
+
+
+class Pawn(Piece):
+    def is_valid_move(self, start, end, board):
+        start_row_pos, start_col_pos = _pos_to_cords(start)
+        end_row_pos, end_col_pos = _pos_to_cords(end)
+
+        direction = 1 if board[start_row_pos][start_col_pos].isupper() else -1
+
+        # Regular move
+        if start_col_pos == end_col_pos and end_row_pos == start_row_pos - direction:
+            return board[end_row_pos][end_col_pos] == ' ' # Must be empty spot
+
+        # Initial move (2 squares)
+        if start_col_pos == end_col_pos and start_row_pos in (1, 6) and end_row_pos - start_row_pos == 2 * direction:
+            return board[start_row_pos + direction][start_col_pos] == ' ' and board[end_row_pos][end_col_pos] == ' ' # Must be empty spot
+
+        # Capture ( Diagonal )
+        if abs(start_col_pos - end_col_pos) == 1 and end_row_pos == start_row_pos - direction:
+            target_piece = board[end_row_pos][end_col_pos]
+
+            # Make sure the target square is not empty and has an enemy piece
+            return target_piece != " " and target_piece.islower() != board[start_row_pos][start_col_pos].islower()
+
+        return False
