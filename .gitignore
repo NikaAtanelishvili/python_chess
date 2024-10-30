@@ -1,0 +1,6 @@
+# created by virtualenv automatica
+# Ignore PyCharm project files
+.idea/
+
+# Ignore Python virtual environment
+.venv/
