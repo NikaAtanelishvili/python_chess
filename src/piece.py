@@ -51,3 +51,34 @@ class Pawn(Piece):
             return target_piece != " " and target_piece.islower() != board[start_row_pos][start_col_pos].islower()
 
         return False
+
+
+class Rook(Piece):
+    def is_valid_move(self, start, end, board):
+        start_row_pos, start_col_pos = _pos_to_cords(start)
+        end_row_pos, end_col_pos = _pos_to_cords(end)
+
+        if start_row_pos != end_row_pos and start_col_pos != end_col_pos:
+            return False
+
+        # Horizontal
+        if start_row_pos == end_row_pos and start_col_pos != end_col_pos:
+            # [2][0] ->/<- [2][5]
+            step = 1 if end_col_pos > start_col_pos else -1
+            for col in range(start_col_pos + step, end_col_pos, step):
+                if board[start_row_pos][col] != ' ': return False
+
+        # Vertical
+        if start_row_pos != end_row_pos and start_col_pos == end_col_pos:
+            # [0][0] ->/<- [5][0]
+            step = 1 if end_row_pos > start_row_pos else -1
+            for row in range(start_row_pos + step, end_row_pos, step):
+                if board[row][start_col_pos] != ' ': return False
+
+        # Destination is empty or occupied by the enemy team
+        target_piece = board[end_row_pos][end_col_pos]
+
+        if target_piece != " " or target_piece.islower() != board[start_row_pos][start_col_pos].islower():
+            return False
+
+        return True
