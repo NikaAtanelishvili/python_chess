@@ -63,7 +63,10 @@ class King(Piece):
         row_diff = abs(end_row_pos - start_row_pos)
         col_diff = abs(end_col_pos - start_col_pos)
 
-        return max(row_diff, col_diff) == 1
+        if max(row_diff, col_diff) == 1:
+            return _is_valid_destination(board, end_row_pos, end_col_pos)
+
+        return False
 
 
 class Pawn(Piece):
