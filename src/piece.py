@@ -16,6 +16,44 @@ def _pos_to_cords(position):
     return row, col
 
 
+'''Destination is empty or occupied by the enemy team'''
+def _is_valid_destination(board, row, col):
+    target_piece = board[row][col]
+    if target_piece != " " or target_piece.islower() != board[row][col].islower():
+        return False
+
+    return True
+
+def _is_vertical_path_clear(board, start_row_pos, end_row_pos, col):
+    step = 1 if end_row_pos > start_row_pos else -1
+    for row in range(start_row_pos + step, end_row_pos, step):
+        if board[row][col] != ' ': return False
+
+    return _is_valid_destination(board, end_row_pos, col)
+
+
+def _is_horizontal_path_clear(board, row, start_col_pos, end_col_pos):
+    step = 1 if end_col_pos > start_col_pos else -1
+    for col in range(start_col_pos + step, end_col_pos, step):
+        if board[row][col] != ' ': return False
+
+    return _is_valid_destination(board, row, end_col_pos)
+
+
+def _is_diagonal_path_clear(board, start_row_pos, start_col_pos, end_row_pos, end_col_pos):
+    # Check if path is clear
+    row_step = 1 if end_row_pos > start_row_pos else -1
+    col_step = 1 if end_col_pos > start_col_pos else -1
+
+    row, col = start_row_pos + row_step, start_col_pos + col_step
+    while row < end_row_pos and col < end_col_pos:
+        if board[row][col] != ' ': return False
+        row += row_step
+        col += col_step
+
+    return _is_valid_destination(board, end_row_pos, end_col_pos)
+
+
 class King(Piece):
     def is_valid_move(self, start, end, board):
         start_row_pos, start_col_pos = _pos_to_cords(start)
@@ -45,10 +83,7 @@ class Pawn(Piece):
 
         # Capture ( Diagonal )
         if abs(start_col_pos - end_col_pos) == 1 and end_row_pos == start_row_pos - direction:
-            target_piece = board[end_row_pos][end_col_pos]
-
-            # Make sure the target square is not empty and has an enemy piece
-            return target_piece != " " and target_piece.islower() != board[start_row_pos][start_col_pos].islower()
+            return _is_valid_destination(board, end_row_pos, end_col_pos)
 
         return False
 
@@ -63,25 +98,14 @@ class Rook(Piece):
 
         # Horizontal
         if start_row_pos == end_row_pos and start_col_pos != end_col_pos:
-            # [2][0] ->/<- [2][5]
-            step = 1 if end_col_pos > start_col_pos else -1
-            for col in range(start_col_pos + step, end_col_pos, step):
-                if board[start_row_pos][col] != ' ': return False
+            return _is_horizontal_path_clear(board, start_row_pos, start_col_pos, end_col_pos)
 
         # Vertical
         if start_row_pos != end_row_pos and start_col_pos == end_col_pos:
-            # [0][0] ->/<- [5][0]
-            step = 1 if end_row_pos > start_row_pos else -1
-            for row in range(start_row_pos + step, end_row_pos, step):
-                if board[row][start_col_pos] != ' ': return False
+            return _is_vertical_path_clear(board, start_row_pos, end_row_pos, start_col_pos)
 
-        # Destination is empty or occupied by the enemy team
-        target_piece = board[end_row_pos][end_col_pos]
+        return False
 
-        if target_piece != " " or target_piece.islower() != board[start_row_pos][start_col_pos].islower():
-            return False
-
-        return True
 
 
 class Bishop(Piece):
@@ -94,18 +118,28 @@ class Bishop(Piece):
             return False
 
         # Check if path is clear
-        row_step = 1 if end_row_pos > start_row_pos else -1
-        col_step = 1 if end_col_pos > start_col_pos else -1
+        return _is_diagonal_path_clear(board, start_row_pos, start_col_pos, end_row_pos, end_col_pos)
 
-        row, col = start_row_pos + row_step, start_col_pos + col_step
-        while row < end_row_pos and col < end_col_pos:
-            if board[row][col] != ' ': return False
-            row += row_step
-            col += col_step
 
-        # Destination is empty or occupied by the enemy team
-        target_piece = board[end_row_pos][end_col_pos]
-        if target_piece != " " or target_piece.islower() != board[row][col].islower():
-            return False
+class Queen(Piece):
+    def is_valid_move(self, start, end, board):
+        start_row_pos, start_col_pos = _pos_to_cords(start)
+        end_row_pos, end_col_pos = _pos_to_cords(end)
 
-        return True
+        '''Determine if move is diagonal, horizontal or vertical'''
+        # Diagonal
+        if abs(end_row_pos - start_row_pos) == abs(end_col_pos - start_col_pos):
+            return _is_diagonal_path_clear(board, start_row_pos, start_col_pos, end_row_pos, end_col_pos)
+
+        # Horizontal
+        if start_row_pos == end_row_pos and start_col_pos != end_col_pos:
+            return _is_horizontal_path_clear(board, start_row_pos, start_col_pos, end_col_pos)
+
+        # Vertical
+        if start_row_pos != end_row_pos and start_col_pos == end_col_pos:
+            return _is_vertical_path_clear(board, start_row_pos, end_row_pos, start_col_pos)
+
+        return False
+
+
+
