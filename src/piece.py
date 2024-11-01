@@ -142,4 +142,18 @@ class Queen(Piece):
         return False
 
 
+class Knight(Piece):
+    def is_valid_move(self, start, end, board):
+        start_row_pos, start_col_pos = _pos_to_cords(start)
+        end_row_pos, end_col_pos = _pos_to_cords(end)
+
+        # Calculate row and column differences
+        row_diff = abs(end_row_pos - start_row_pos)
+        col_diff = abs(end_col_pos - start_col_pos)
+
+        # Check for L-shape movement (2 squares in one direction, 1 in the other)
+        if (row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2):
+            return _is_valid_destination(board, end_row_pos, end_col_pos)
+
+
 
