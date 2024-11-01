@@ -82,3 +82,30 @@ class Rook(Piece):
             return False
 
         return True
+
+
+class Bishop(Piece):
+    def is_valid_move(self, start, end, board):
+        start_row_pos, start_col_pos = _pos_to_cords(start)
+        end_row_pos, end_col_pos = _pos_to_cords(end)
+
+        # Move must be diagonal
+        if abs(end_row_pos - start_row_pos) != abs(end_col_pos - start_col_pos):
+            return False
+
+        # Check if path is clear
+        row_step = 1 if end_row_pos > start_row_pos else -1
+        col_step = 1 if end_col_pos > start_col_pos else -1
+
+        row, col = start_row_pos + row_step, start_col_pos + col_step
+        while row < end_row_pos and col < end_col_pos:
+            if board[row][col] != ' ': return False
+            row += row_step
+            col += col_step
+
+        # Destination is empty or occupied by the enemy team
+        target_piece = board[end_row_pos][end_col_pos]
+        if target_piece != " " or target_piece.islower() != board[row][col].islower():
+            return False
+
+        return True
