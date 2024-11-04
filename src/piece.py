@@ -3,7 +3,7 @@ class Piece:
         self.color = color  # 'white' or 'black'
         self.position = position  # Example: 'e2'
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, game):
         """Validate if the move is allowed (to be overridden by subclasses)."""
         raise NotImplementedError("This method should be overridden in subclasses.")
 
@@ -15,46 +15,51 @@ def pos_to_cords(position):
 
     return row, col
 
+def cords_to_pos(row, col):
+    return f"{chr(col + ord('a'))}{8 - row}"
 
 '''Destination is empty or occupied by the enemy team'''
-def _is_valid_destination(board, row, col):
+def _is_valid_destination(board, row, col, moving_piece_color):
     target_piece = board[row][col]
 
-    # Check if the target_piece is not empty and has a color attribute
-    if target_piece != " " and hasattr(target_piece, 'color'):
-        if target_piece.color != board[row][col].color:
-            return False
-
+    if target_piece != ' ' and hasattr(target_piece, 'color'):
+        if target_piece.color == moving_piece_color:
+            # Cannot capture own piece
+            return False  # Own piece at destination
+    # Destination is either empty or contains an opponent's piece
     return True
+
 
 def _is_vertical_path_clear(board, start_row_pos, end_row_pos, col):
     step = 1 if end_row_pos > start_row_pos else -1
-    for row in range(start_row_pos + step, end_row_pos, step):
-        if board[row][col] != ' ': return False
 
-    return _is_valid_destination(board, end_row_pos, col)
+    for row in range(start_row_pos + step, end_row_pos, step):
+        if board[row][col] != ' ': return False  # Path is blocked
+
+    return _is_valid_destination(board, end_row_pos, col, board[start_row_pos][col].color)
+
 
 
 def _is_horizontal_path_clear(board, row, start_col_pos, end_col_pos):
     step = 1 if end_col_pos > start_col_pos else -1
+
     for col in range(start_col_pos + step, end_col_pos, step):
         if board[row][col] != ' ': return False
 
-    return _is_valid_destination(board, row, end_col_pos)
-
+    return _is_valid_destination(board, row, end_col_pos, board[row][start_col_pos].color)
 
 def _is_diagonal_path_clear(board, start_row_pos, start_col_pos, end_row_pos, end_col_pos):
-    # Check if path is clear
     row_step = 1 if end_row_pos > start_row_pos else -1
     col_step = 1 if end_col_pos > start_col_pos else -1
 
     row, col = start_row_pos + row_step, start_col_pos + col_step
-    while row < end_row_pos and col < end_col_pos:
-        if board[row][col] != ' ': return False
+    while row != end_row_pos and col != end_col_pos:
+        if board[row][col] != ' ':
+            return False  # Path is blocked
         row += row_step
         col += col_step
 
-    return _is_valid_destination(board, end_row_pos, end_col_pos)
+    return _is_valid_destination(board, end_row_pos, end_col_pos, board[start_row_pos][start_col_pos].color)
 
 
 class King(Piece):
@@ -62,7 +67,7 @@ class King(Piece):
         super().__init__(color, position)
         self.symbol = "♚" if color == "black" else "♔"
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
         end_row_pos, end_col_pos = pos_to_cords(end)
 
@@ -71,9 +76,26 @@ class King(Piece):
         col_diff = abs(end_col_pos - start_col_pos)
 
         if max(row_diff, col_diff) == 1:
-            return _is_valid_destination(board, end_row_pos, end_col_pos)
+            # Temporarily move the King to the destination
+            original_piece = board[end_row_pos][end_col_pos]
+            board[end_row_pos][end_col_pos] = self
+            board[start_row_pos][start_col_pos] = " "
+            self.position = end
 
-        return False
+            # Check if the King is in check after the move
+            in_check = game.is_in_check(self.color)
+
+            # Revert the move
+            board[start_row_pos][start_col_pos] = self
+            board[end_row_pos][end_col_pos] = original_piece
+            self.position = start
+
+            if in_check:
+                return False
+            else:
+                return _is_valid_destination(board, end_row_pos, end_col_pos, board[start_row_pos][start_col_pos].color)
+        else:
+            return False
 
 
 class Pawn(Piece):
@@ -81,25 +103,33 @@ class Pawn(Piece):
         super().__init__(color, position)
         self.symbol = "♟" if color == "black" else "♙"
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
         end_row_pos, end_col_pos = pos_to_cords(end)
 
-        direction = 1 if board[start_row_pos][start_col_pos].color == 'white' else -1
+        direction = -1 if self.color == 'white' else 1  # White moves up (-1), Black moves down (+1)
 
-        # Regular move
-        if start_col_pos == end_col_pos and end_row_pos == start_row_pos - direction:
-            return board[end_row_pos][end_col_pos] == ' ' # Must be empty spot
+        # Regular move (forward one square)
+        if start_col_pos == end_col_pos and end_row_pos == start_row_pos + direction:
+            return board[end_row_pos][end_col_pos] == ' '  # Must be an empty spot
 
-        # Initial move (2 squares)
-        if start_col_pos == end_col_pos and start_row_pos in (1, 6) and end_row_pos - start_row_pos == -2 * direction:
-            return board[start_row_pos + direction][start_col_pos] == ' ' and board[end_row_pos][end_col_pos] == ' ' # Must be empty spot
+        # Initial move (forward two squares)
+        if start_col_pos == end_col_pos:
+            if (self.color == 'white' and start_row_pos == 6) or (self.color == 'black' and start_row_pos == 1):
+                if end_row_pos == start_row_pos + 2 * direction:
+                    if board[start_row_pos + direction][start_col_pos] == ' ' and board[end_row_pos][end_col_pos] == ' ':
+                        return True  # Both squares must be empty
 
-        # Capture ( Diagonal )
-        if abs(start_col_pos - end_col_pos) == 1 and end_row_pos == start_row_pos - direction:
-            return _is_valid_destination(board, end_row_pos, end_col_pos)
+        # Capture (diagonal move)
+        if abs(start_col_pos - end_col_pos) == 1 and end_row_pos == start_row_pos + direction:
+            target_piece = board[end_row_pos][end_col_pos]
+            if target_piece != ' ' and hasattr(target_piece, 'color'):
+                if target_piece.color != self.color:
+                    return True  # Can capture opponent's piece
+            return False  # Cannot move diagonally unless capturing opponent's piece
 
-        return False
+        return False  # Move is invalid
+
 
 
 class Rook(Piece):
@@ -107,7 +137,7 @@ class Rook(Piece):
         super().__init__(color, position)
         self.symbol = "♜" if color == "black" else "♖"
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
         end_row_pos, end_col_pos = pos_to_cords(end)
 
@@ -115,11 +145,11 @@ class Rook(Piece):
             return False
 
         # Horizontal
-        if start_row_pos == end_row_pos and start_col_pos != end_col_pos:
+        if start_row_pos == end_row_pos:
             return _is_horizontal_path_clear(board, start_row_pos, start_col_pos, end_col_pos)
 
         # Vertical
-        if start_row_pos != end_row_pos and start_col_pos == end_col_pos:
+        if start_col_pos == end_col_pos:
             return _is_vertical_path_clear(board, start_row_pos, end_row_pos, start_col_pos)
 
         return False
@@ -131,7 +161,7 @@ class Bishop(Piece):
         super().__init__(color, position)
         self.symbol = "♝" if color == "black" else "♗"
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
         end_row_pos, end_col_pos = pos_to_cords(end)
 
@@ -148,7 +178,7 @@ class Queen(Piece):
         super().__init__(color, position)
         self.symbol = "♛" if color == "black" else "♕"
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
         end_row_pos, end_col_pos = pos_to_cords(end)
 
@@ -173,7 +203,7 @@ class Knight(Piece):
         super().__init__(color, position)
         self.symbol = "♞" if color == "black" else "♘"
 
-    def is_valid_move(self, start, end, board):
+    def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
         end_row_pos, end_col_pos = pos_to_cords(end)
 
@@ -183,7 +213,9 @@ class Knight(Piece):
 
         # Check for L-shape movement (2 squares in one direction, 1 in the other)
         if (row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2):
-            return _is_valid_destination(board, end_row_pos, end_col_pos)
+            return _is_valid_destination(board, end_row_pos, end_col_pos, board[start_row_pos][start_col_pos].color)
+
+        return False
 
 
 
