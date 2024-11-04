@@ -5,6 +5,8 @@ def main():
     board.print_board()
 
     while True:
+        print(f"{board.turn.capitalize()}'s turn.")
+
         # Get player input
         start = input("Enter the position of the piece to move (e.g., 'e2'): ")
         end = input("Enter the target position (e.g., 'e4'): ")
