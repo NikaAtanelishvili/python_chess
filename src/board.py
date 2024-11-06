@@ -10,22 +10,18 @@ class Board:
         ]
         self.setup_pieces()
         self.turn = 'white'
+        self.en_passant_target = None  # Square available for en passant capture
 
     def setup_pieces(self):
         self.board[0] = [
             Rook('black', 'a8'), Knight('black', 'b8'), Bishop('black', 'c8'),
-            Pawn('black', 'd8'), King('black', 'e8'),
-            Pawn('black', 'f8'), Pawn('black', 'g8'), Rook('black', 'h8')
+            Queen('black', 'd8'), King('black', 'e8'),
+            Bishop('black', 'f8'), Knight('black', 'g8'), Rook('black', 'h8')
         ]
-        self.board[1] = [
-            Pawn('black', 'a7'), Pawn('black', 'b7'), Pawn('black', 'c7'),
-            Pawn('black', 'd7'), ' ',
-            Pawn('black', 'f7'), Pawn('black', 'g7'), Pawn('black', 'h7')
-        ]
-        # self.board[1] = [Pawn('black', f'{chr(97 + col)}7') for col in range(8)]
+        self.board[1] = [Pawn('black', f'{chr(97 + col)}7') for col in range(8)]
 
         # White pieces
-        # self.board[6] = [Pawn('white', f'{chr(97 + col)}2') for col in range(8)]
+        self.board[6] = [Pawn('white', f'{chr(97 + col)}2') for col in range(8)]
         self.board[7] = [
             Rook('white', 'a1'), Knight('white', 'b1'), Bishop('white', 'c1'),
             Queen('white', 'd1'), King('white', 'e1'),
@@ -111,22 +107,32 @@ class Board:
 
         # Check if there's a piece at the start position and if the move is valid
         if piece != " " and piece.color == self.turn and hasattr(piece, 'is_valid_move') and piece.is_valid_move(start, end, self.board, self):
-            # Simulate move
-            captured_piece = self.board[end_row][end_col]
+            # Handle en passant
+            if isinstance(piece, Pawn) and abs(start_row - end_row) == 2:
+                # Set en passant target if pawn moves two squares
+                self.en_passant_target = cords_to_pos((start_row + end_row) // 2, start_col)
+
+            # En passant capture handling
+            if isinstance(piece, Pawn) and end == self.en_passant_target:
+                capture_row, capture_col = start_row, end_col
+                captured_piece = self.board[capture_row][capture_col]
+                self.board[capture_row][capture_col] = ' '  # Remove the captured pawn
+            else:
+                captured_piece = self.board[end_row][end_col]
+
             self.board[end_row][end_col] = piece
             self.board[start_row][start_col] = ' '
             piece.position = end
 
             # Check if king is in check after the move
-
             if self.is_in_check(self.turn):
                 # Revert move
                 self.board[start_row][start_col] = piece
                 self.board[end_row][end_col] = captured_piece
                 piece.position = start
                 print("Invalid move: your King would be in check.")
+            # Check for checkmate after the opponent's move
             else:
-                # Check for checkmate after the opponent's move
                 opponent_color = 'black' if self.turn == 'white' else 'white'
                 if self.is_in_checkmate(opponent_color):
                     print(f"Checkmate! {self.turn.capitalize()} wins!")
@@ -138,5 +144,6 @@ class Board:
     def switch_turn(self):
         # Toggle turn between white and black
         self.turn = "black" if self.turn == "white" else "white"
+
 
 

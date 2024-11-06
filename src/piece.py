@@ -7,7 +7,6 @@ class Piece:
         """Validate if the move is allowed (to be overridden by subclasses)."""
         raise NotImplementedError("This method should be overridden in subclasses.")
 
-
 def pos_to_cords(position):
     """Converts piece's position "e2, a3" to coords(indexes)"""
     col = ord(position[0]) - ord('a')
@@ -29,7 +28,6 @@ def _is_valid_destination(board, row, col, moving_piece_color):
     # Destination is either empty or contains an opponent's piece
     return True
 
-
 def _is_vertical_path_clear(board, start_row_pos, end_row_pos, col):
     step = 1 if end_row_pos > start_row_pos else -1
 
@@ -37,8 +35,6 @@ def _is_vertical_path_clear(board, start_row_pos, end_row_pos, col):
         if board[row][col] != ' ': return False  # Path is blocked
 
     return _is_valid_destination(board, end_row_pos, col, board[start_row_pos][col].color)
-
-
 
 def _is_horizontal_path_clear(board, row, start_col_pos, end_col_pos):
     step = 1 if end_col_pos > start_col_pos else -1
@@ -102,12 +98,16 @@ class Pawn(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
         self.symbol = "♟" if color == "black" else "♙"
+        self.just_moved_two_squares = False  # Track if this pawn just moved two squares (for en ...)
 
     def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
         end_row_pos, end_col_pos = pos_to_cords(end)
 
         direction = -1 if self.color == 'white' else 1  # White moves up (-1), Black moves down (+1)
+
+        # Reset the two-square move tracker unless this move is a two-square move
+        self.just_moved_two_squares = False
 
         # Regular move (forward one square)
         if start_col_pos == end_col_pos and end_row_pos == start_row_pos + direction:
@@ -118,6 +118,7 @@ class Pawn(Piece):
             if (self.color == 'white' and start_row_pos == 6) or (self.color == 'black' and start_row_pos == 1):
                 if end_row_pos == start_row_pos + 2 * direction:
                     if board[start_row_pos + direction][start_col_pos] == ' ' and board[end_row_pos][end_col_pos] == ' ':
+                        self.just_moved_two_squares = True
                         return True  # Both squares must be empty
 
         # Capture (diagonal move)
@@ -126,10 +127,12 @@ class Pawn(Piece):
             if target_piece != ' ' and hasattr(target_piece, 'color'):
                 if target_piece.color != self.color:
                     return True  # Can capture opponent's piece
-            return False  # Cannot move diagonally unless capturing opponent's piece
+            # En passant capture
+            if game.en_passant_target == end and isinstance(board[start_row_pos][end_col_pos], Pawn):
+                if board[start_row_pos][end_col_pos].color != self.color:
+                    return True  # Valid en passant capture
 
         return False  # Move is invalid
-
 
 
 class Rook(Piece):
@@ -153,7 +156,6 @@ class Rook(Piece):
             return _is_vertical_path_clear(board, start_row_pos, end_row_pos, start_col_pos)
 
         return False
-
 
 
 class Bishop(Piece):
