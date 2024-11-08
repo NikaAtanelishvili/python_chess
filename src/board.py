@@ -23,9 +23,9 @@ class Board:
         # White pieces
         self.board[6] = [Pawn('white', f'{chr(97 + col)}2') for col in range(8)]
         self.board[7] = [
-            Rook('white', 'a1'), Knight('white', 'b1'), Bishop('white', 'c1'),
-            Queen('white', 'd1'), King('white', 'e1'),
-            Bishop('white', 'f1'), Knight('white', 'g1'), Rook('white', 'h1')
+            Rook('white', 'a1'), ' ', ' ',
+            ' ', King('white', 'e1'),
+            ' ', ' ', Rook('white', 'h1')
         ]
 
     def print_board(self):
@@ -107,6 +107,18 @@ class Board:
 
         # Check if there's a piece at the start position and if the move is valid
         if piece != " " and piece.color == self.turn and hasattr(piece, 'is_valid_move') and piece.is_valid_move(start, end, self.board, self):
+            # Handle castling - Put the Rook in place after castling
+            if isinstance(piece, King) and abs(start_col - end_col) == 2:  # Castling move
+                rook_start_col = 0 if end_col < start_col else 7
+                rook_end_col = 3 if end_col < start_col else 5  # New rook position after castling
+
+                rook = self.board[start_row][rook_start_col]
+                self.board[start_row][rook_end_col] = rook
+                self.board[start_row][rook_start_col] = ' '  # Move the rook to its new position
+                rook.position = cords_to_pos(start_row, rook_end_col)
+                rook.has_moved = True  # Mark the rook as having moved
+                piece.has_moved = True
+
             # Handle en passant
             if isinstance(piece, Pawn) and abs(start_row - end_row) == 2:
                 # Set en passant target if pawn moves two squares
@@ -120,6 +132,7 @@ class Board:
             else:
                 captured_piece = self.board[end_row][end_col]
 
+            # Move piece
             self.board[end_row][end_col] = piece
             self.board[start_row][start_col] = ' '
             piece.position = end
@@ -133,6 +146,8 @@ class Board:
                 print("Invalid move: your King would be in check.")
             # Check for checkmate after the opponent's move
             else:
+                piece.has_moved = True
+
                 opponent_color = 'black' if self.turn == 'white' else 'white'
                 if self.is_in_checkmate(opponent_color):
                     print(f"Checkmate! {self.turn.capitalize()} wins!")

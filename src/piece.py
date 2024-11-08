@@ -2,6 +2,7 @@ class Piece:
     def __init__(self, color, position):
         self.color = color  # 'white' or 'black'
         self.position = position  # Example: 'e2'
+        self.has_moved = False
 
     def is_valid_move(self, start, end, board, game):
         """Validate if the move is allowed (to be overridden by subclasses)."""
@@ -71,6 +72,10 @@ class King(Piece):
         row_diff = abs(end_row_pos - start_row_pos)
         col_diff = abs(end_col_pos - start_col_pos)
 
+        # Castling logic
+        if abs(start_col_pos - end_col_pos) == 2:  # King moves 2 squares sideways
+            return self.can_castle(start, end, board, game)
+
         if max(row_diff, col_diff) == 1:
             # Temporarily move the King to the destination
             original_piece = board[end_row_pos][end_col_pos]
@@ -92,6 +97,41 @@ class King(Piece):
                 return _is_valid_destination(board, end_row_pos, end_col_pos, board[start_row_pos][start_col_pos].color)
         else:
             return False
+
+    def can_castle(self, start, end, board, game):
+        if self.has_moved:
+            print('King was moved before, you can no longer castle')
+            return False
+
+        # Define rook's start position based on color and side (king or queen side)
+        row, col = pos_to_cords(start) # E.G. 7 4
+        rook_col = 7 if end[1] < start[1] else 0  # Queen-side or king-side castling
+
+        rook = board[row][rook_col]
+        if not isinstance(rook, Rook) or rook.has_moved:
+            print('Castling failed, Rook was moved or is absent!')
+            return False
+
+        # # Check squares between king and rook are empty
+        step = 1 if rook_col == 0 else -1
+
+        # Use _is_horizontal_path_clear to check if the path between king and rook is clear
+        if not _is_horizontal_path_clear(board, row, col, rook_col + step):
+            print(row, col, rook_col + step)
+            return False
+
+        # Ensure no squares king crosses or lands on are under attack
+        temp_positions = [start, cords_to_pos(row, col + step), end]
+        opponent_color = 'black' if self.color == 'white' else 'white'
+
+        for pos in temp_positions:
+            for row in game.board:
+                for piece in row:
+                    if piece != ' ' and piece.color == opponent_color:
+                        if piece.is_valid_move(piece.position, pos, game.board, game):
+                            return False
+
+        return True
 
 
 class Pawn(Piece):
