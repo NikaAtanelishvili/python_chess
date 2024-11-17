@@ -1,6 +1,27 @@
 from typing import List, Union, Optional
 
+import pygame
+
 from piece import *
+
+
+def scale_image(image, square_size, margin=5):
+    # Calculate effective size by subtracting the margin
+    effective_size = square_size - 2 * margin
+
+    # Get original image dimensions
+    original_width, original_height = image.get_size()
+
+    # Determine scaling factor to fit the image within the effective size
+    scaling_factor = min(effective_size / original_width, effective_size / original_height)
+
+    # Calculate new dimensions
+    new_width = int(original_width * scaling_factor)
+    new_height = int(original_height * scaling_factor)
+
+    # Scale the image
+    return pygame.transform.scale(image, (new_width, new_height)), margin
+
 
 class Board:
     def __init__(self):
@@ -11,6 +32,8 @@ class Board:
         self.setup_pieces()
         self.turn = 'white'
         self.en_passant_target = None  # Square available for en passant capture
+        self.square_size = 100
+        self.colors = [(240, 217, 181), (181, 136, 99)]
 
     def setup_pieces(self):
         self.board[0] = [
@@ -23,16 +46,36 @@ class Board:
         # White pieces
         self.board[6] = [Pawn('white', f'{chr(97 + col)}2') for col in range(8)]
         self.board[7] = [
-            Rook('white', 'a1'), ' ', ' ',
-            ' ', King('white', 'e1'),
-            ' ', ' ', Rook('white', 'h1')
+            Rook('white', 'a1'), Knight('white', 'b1'), Bishop('white', 'c1'),
+            Queen('white', 'd1'), King('white', 'e1'),
+            Bishop('white', 'f1'), Knight('white', 'g1'), Rook('white', 'h1')
         ]
 
-    def print_board(self):
-        """Display the board with piece symbols."""
-        for row in self.board:
-            print(' '.join(piece.symbol if piece != " " and hasattr(piece, 'symbol') else " " for piece in row))
-        print()
+    def draw_board(self, screen):
+        for row in range(8):
+            for col in range(8):
+                # Alter square colors
+                color = self.colors[(row + col) % 2]
+                pygame.draw.rect(
+                    screen,
+                    color,
+                    (col * self.square_size, row * self.square_size, self.square_size, self.square_size)
+                )
+
+                piece = self.board[row][col]
+                if piece != " ":
+                    self.draw_piece(screen, piece, col, row)
+
+    def draw_piece(self, screen, piece, col, row):
+        # Scale the image with margin
+        image, margin = scale_image(piece.image, self.square_size, margin=10)
+
+        # Calculate the position to center the image within the square
+        x = col * self.square_size + (self.square_size - image.get_width()) // 2
+        y = row * self.square_size + (self.square_size - image.get_height()) // 2
+
+        # Blit the image on the screen
+        screen.blit(image, (x, y))
 
     def is_in_check(self, color):
         king_pos = self.find_king(color)
@@ -137,6 +180,10 @@ class Board:
             self.board[start_row][start_col] = ' '
             piece.position = end
 
+            # Handle promotion
+            if isinstance(piece, Pawn) and piece.is_promotion_square(end_row):
+                self.promote_pawn(end_row, end_col, piece)
+
             # Check if king is in check after the move
             if self.is_in_check(self.turn):
                 # Revert move
@@ -155,6 +202,27 @@ class Board:
                 self.switch_turn()
         else:
             print("Invalid move: either it's not your turn or the move is invalid.")
+
+
+
+    def promote_pawn(self, row, col, piece):
+        """Promote a pawn to a new piece chosen by the player."""
+        choice = input("Pawn promotion! Choose a piece (q - Queen, r - Rook, b - Bishop, n - Knight):").strip().lower()
+
+        match choice:
+
+            case 'q':
+                self.board[row][col] = Queen(piece.color, piece.position)
+            case 'b':
+                self.board[row][col] = Bishop(piece.color, piece.position)
+            case 'n':
+                self.board[row][col] = Knight(piece.color, piece.position)
+            case 'r':
+                self.board[row][col] = Rook(piece.color, piece.position)
+            case _:
+                print("Invalid choice. Defaulting to Queen.")
+                self.board[row][col] = Queen(piece.color, piece.position)
+
 
     def switch_turn(self):
         # Toggle turn between white and black

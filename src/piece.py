@@ -1,3 +1,6 @@
+import pygame
+
+
 class Piece:
     def __init__(self, color, position):
         self.color = color  # 'white' or 'black'
@@ -62,7 +65,7 @@ def _is_diagonal_path_clear(board, start_row_pos, start_col_pos, end_row_pos, en
 class King(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.symbol = "♚" if color == "black" else "♔"
+        self.image = pygame.image.load('./assets/chess-pieces/b_king_png_128px.png') if color == "black" else pygame.image.load('./assets/chess-pieces/w_king_png_128px.png')
 
     def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
@@ -100,7 +103,6 @@ class King(Piece):
 
     def can_castle(self, start, end, board, game):
         if self.has_moved:
-            print('King was moved before, you can no longer castle')
             return False
 
         # Define rook's start position based on color and side (king or queen side)
@@ -117,7 +119,6 @@ class King(Piece):
 
         # Use _is_horizontal_path_clear to check if the path between king and rook is clear
         if not _is_horizontal_path_clear(board, row, col, rook_col + step):
-            print(row, col, rook_col + step)
             return False
 
         # Ensure no squares king crosses or lands on are under attack
@@ -137,8 +138,16 @@ class King(Piece):
 class Pawn(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.symbol = "♟" if color == "black" else "♙"
+        self.image = pygame.image.load('./assets/chess-pieces/b_pawn_png_128px.png') if color == "black" else pygame.image.load('./assets/chess-pieces/w_pawn_png_128px.png')
         self.just_moved_two_squares = False  # Track if this pawn just moved two squares (for en ...)
+
+    def is_promotion_square(self, row):
+        """Check if the pawn is in the promotion row."""
+        if self.color == "white" and row == 0:
+            return True
+        elif self.color == "black" and row == 7:
+            return True
+        return False
 
     def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
@@ -174,11 +183,16 @@ class Pawn(Piece):
 
         return False  # Move is invalid
 
+        # Check color
+        # if white and row == 0 | if black and row == 7
+        # input('which piece do you want to revive?')
+
 
 class Rook(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.symbol = "♜" if color == "black" else "♖"
+        self.image = pygame.image.load('./assets/chess-pieces/b_rook_png_128px.png') if color == "black" else pygame.image.load('./assets/chess-pieces/w_rook_png_128px.png')
+
 
     def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
@@ -201,7 +215,8 @@ class Rook(Piece):
 class Bishop(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.symbol = "♝" if color == "black" else "♗"
+        self.image = pygame.image.load('./assets/chess-pieces/b_bishop_png_128px.png') if color == "black" else pygame.image.load('./assets/chess-pieces/w_bishop_png_128px.png')
+
 
     def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
@@ -218,7 +233,8 @@ class Bishop(Piece):
 class Queen(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.symbol = "♛" if color == "black" else "♕"
+        self.image = pygame.image.load('./assets/chess-pieces/b_queen_png_128px.png') if color == "black" else pygame.image.load('./assets/chess-pieces/w_queen_png_128px.png')
+
 
     def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
@@ -243,7 +259,8 @@ class Queen(Piece):
 class Knight(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.symbol = "♞" if color == "black" else "♘"
+        self.image = pygame.image.load('./assets/chess-pieces/b_knight_png_128px.png') if color == "black" else pygame.image.load('./assets/chess-pieces/w_knight_png_128px.png')
+
 
     def is_valid_move(self, start, end, board, game):
         start_row_pos, start_col_pos = pos_to_cords(start)
