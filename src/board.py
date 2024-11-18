@@ -1,6 +1,7 @@
 from typing import List, Union, Optional
 
 import pygame
+from pygame.examples.midi import NullKey
 
 from piece import *
 
@@ -34,6 +35,8 @@ class Board:
         self.en_passant_target = None  # Square available for en passant capture
         self.square_size = 100
         self.colors = [(240, 217, 181), (181, 136, 99)]
+        self.selected_piece = None
+        self.highlighted_moves = []
 
     def setup_pieces(self):
         self.board[0] = [
@@ -62,9 +65,41 @@ class Board:
                     (col * self.square_size, row * self.square_size, self.square_size, self.square_size)
                 )
 
+                # Highlight moves
+                if cords_to_pos(row, col) in self.highlighted_moves:
+                    pygame.draw.rect(
+                        screen,
+                        (255, 255, 0),  # Yellow border
+                        (col * self.square_size, row * self.square_size, self.square_size, self.square_size),
+                        5  # Border thickness
+                    )
+
                 piece = self.board[row][col]
                 if piece != " ":
                     self.draw_piece(screen, piece, col, row)
+
+    def handle_click(self, mouse_x, mouse_y):
+        col = mouse_x // self.square_size
+        row = mouse_y // self.square_size
+
+        if 0 <= row < 8 and 0 <= col < 8:  # Ensure click is within bounds
+            clicked_piece = self.board[row][col]
+
+            # If a piece is clicked
+            if clicked_piece != " " and clicked_piece.color == self.turn:
+                self.selected_piece = clicked_piece
+                self.highlighted_moves = self.get_all_possible_moves(clicked_piece)
+
+            # If clicking on an empty square or deselecting
+            elif self.selected_piece and cords_to_pos(row, col) in self.highlighted_moves:
+                self.move_piece(self.selected_piece.position, cords_to_pos(row, col))
+                self.selected_piece = None
+                self.highlighted_moves = []
+
+            else:
+                # Clear selection
+                self.selected_piece = None
+                self.highlighted_moves = []
 
     def draw_piece(self, screen, piece, col, row):
         # Scale the image with margin

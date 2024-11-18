@@ -41,6 +41,9 @@ def main():
                         print("Draw offer made!")
                         draw_popup = True  # Show draw popup
 
+                if mouse_y <= 800:  # Ensure the click is on the board, not the UI
+                    board.handle_click(mouse_x, mouse_y)
+
         screen.fill((0, 0, 0))
         board.draw_board(screen)
 
