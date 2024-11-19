@@ -38,6 +38,11 @@ class Board:
         self.selected_piece = None
         self.highlighted_moves = []
 
+        # For blinking animation when king is checked
+        self.king_in_check = False
+        self.king_in_check_position = None
+        self.check_start_time = None
+
     def setup_pieces(self):
         self.board[0] = [
             Rook('black', 'a8'), Knight('black', 'b8'), Bishop('black', 'c8'),
@@ -54,11 +59,25 @@ class Board:
             Bishop('white', 'f1'), Knight('white', 'g1'), Rook('white', 'h1')
         ]
 
+
     def draw_board(self, screen):
         for row in range(8):
             for col in range(8):
+                pos = cords_to_pos(row, col)
+
                 # Alter square colors
                 color = self.colors[(row + col) % 2]
+
+                # Blinking animation
+                if pos == self.king_in_check_position and self.king_in_check:
+                    elapsed_time = pygame.time.get_ticks() - self.check_start_time
+                    if elapsed_time < 500:  # Blink for 500ms
+                        color = (255, 0, 0)  # Red
+                    else:
+                        # Stop blinking after 500ms
+                        self.king_in_check = False
+                        self.king_in_check_position = None
+
                 pygame.draw.rect(
                     screen,
                     color,
@@ -225,10 +244,21 @@ class Board:
                 self.board[start_row][start_col] = piece
                 self.board[end_row][end_col] = captured_piece
                 piece.position = start
+
+                # Set check state and start time
+                self.king_in_check = True
+                self.king_in_check_position = self.find_king(self.turn)
+                self.check_start_time = pygame.time.get_ticks()
+
                 print("Invalid move: your King would be in check.")
             # Check for checkmate after the opponent's move
             else:
                 piece.has_moved = True
+
+                # Set check state and start time
+                self.king_in_check = False
+                self.king_in_check_position = None
+                self.check_start_time = None
 
                 opponent_color = 'black' if self.turn == 'white' else 'white'
                 if self.is_in_checkmate(opponent_color):
