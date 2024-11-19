@@ -16,6 +16,9 @@ def main():
 
     running = True
     draw_popup = False  # Tracks whether the draw popup is active
+    resign_popup = False
+    game_over = False
+    popup_message = '' # Draw or Resign
 
     while running:
         for event in pygame.event.get():
@@ -24,20 +27,47 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = event.pos
 
-                if draw_popup:
-                    # Handle draw popup buttons
-                    if 290 <= mouse_x <= 390 and 400 <= mouse_y <= 440:  # Accept button
-                        print("Draw accepted!")
-                        running = False  # End game
-                    elif 410 <= mouse_x <= 510 and 400 <= mouse_y <= 440:  # Reject button
-                        print("Draw rejected!")
-                        draw_popup = False  # Close popup
+                if draw_popup or resign_popup:
+                    if game_over:
+                        # Handle popup buttons
+                        if 270 <= mouse_x <= 390 and 400 <= mouse_y <= 440:  # Accept button
+                            print("Restarting...!")
+                            board = Board()
+                            game_over = False
+                            draw_popup = False
+                            resign_popup = False
+                            popup_message = ''
+                        elif 410 <= mouse_x <= 530 and 400 <= mouse_y <= 440:  # Reject button
+                            print("Exiting game!")
+                            running = False
+                    else:
+                        # Handle draw popup buttons
+                        if draw_popup:
+                            if 290 <= mouse_x <= 390 and 400 <= mouse_y <= 440:  # Accept button
+                                print("Draw accepted!")
+                                game_over = True
+                                popup_message = "Game Over: Draw"
+                            elif 410 <= mouse_x <= 510 and 400 <= mouse_y <= 440:  # Reject button
+                                print("Draw rejected!")
+                                draw_popup = False  # Close popup
+                        # Handle resign popup buttons
+                        if resign_popup:
+                            if 290 <= mouse_x <= 390 and 400 <= mouse_y <= 440:  # Confirm resign
+                                print(f"{board.turn.capitalize()} player resigned!")
+                                game_over = True  # Mark game as over
+                                popup_message = f"Game Over: {board.turn.capitalize()} Resigned"
+                            elif 410 <= mouse_x <= 510 and 400 <= mouse_y <= 440:  # Cancel resign
+                                print("Resign canceled!")
+                                resign_popup = False  # Close popup
+
                 else:
                     # Handle main buttons
                     if 650 <= mouse_x <= 780 and 815 <= mouse_y <= 845:  # Resign button
                         print(f"{board.turn} player resigned!")
-                        running = False  # End game
+                        popup_message = 'Confirm Resign'
+                        resign_popup = True  # Show resign popup
                     elif 650 <= mouse_x <= 780 and 855 <= mouse_y <= 885:  # Draw button
+                        popup_message = 'Player has offered a draw'
                         print("Draw offer made!")
                         draw_popup = True  # Show draw popup
 
@@ -62,22 +92,34 @@ def main():
         screen.blit(draw_text, (660, 860))
 
         # Draw popup if draw is offered
-        if draw_popup:
+        if draw_popup or resign_popup:
             pygame.draw.rect(screen, (50, 50, 50), (200, 300, 400, 200))  # Popup background
             pygame.draw.rect(screen, (255, 255, 255), (200, 300, 400, 200), 2)  # Popup border
 
-            popup_text = font.render("Opponent has offered a draw", True, (255, 255, 255))
-            screen.blit(popup_text, (230, 330))
+            popup_text = button_font.render(popup_message, True, (255, 255, 255))
+            text_width = popup_text.get_width()
+            screen.blit(popup_text, ((800-text_width)/2, 330))
 
-            # Draw "Accept" button
-            pygame.draw.rect(screen, (0, 200, 0), (290, 400, 100, 40))
-            accept_text = button_font.render("Accept", True, (255, 255, 255))
-            screen.blit(accept_text, (305, 410))
+            if game_over:
+                # Draw "Play Again" button
+                pygame.draw.rect(screen, (0, 200, 0), (270, 400, 120, 40))
+                play_again_text = button_font.render("Play Again", True, (255, 255, 255))
+                screen.blit(play_again_text, (280, 410))
 
-            # Draw "Reject" button
-            pygame.draw.rect(screen, (200, 0, 0), (410, 400, 100, 40))
-            reject_text = button_font.render("Reject", True, (255, 255, 255))
-            screen.blit(reject_text, (425, 410))
+                # Draw "Exit" button
+                pygame.draw.rect(screen, (200, 0, 0), (410, 400, 120, 40))
+                exit_text = button_font.render("Exit", True, (255, 255, 255))
+                screen.blit(exit_text, (445, 410))
+            else:
+                # Draw "Accept" button
+                pygame.draw.rect(screen, (0, 200, 0), (290, 400, 100, 40))
+                accept_text = button_font.render("Accept", True, (255, 255, 255))
+                screen.blit(accept_text, (305, 410))
+
+                # Draw "Reject" button
+                pygame.draw.rect(screen, (200, 0, 0), (410, 400, 100, 40))
+                reject_text = button_font.render("Reject", True, (255, 255, 255))
+                screen.blit(reject_text, (425, 410))
 
         # Update the game
         pygame.display.flip()
