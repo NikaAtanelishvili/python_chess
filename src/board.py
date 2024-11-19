@@ -43,6 +43,15 @@ class Board:
         self.king_in_check_position = None
         self.check_start_time = None
 
+        # Popup state for checkmate popup
+        self.running = True
+        self.draw_popup = False
+        self.resign_popup = False
+        self.checkmate_popup = False
+        self.popup_message = ""
+        self.game_over = False
+
+
     def setup_pieces(self):
         self.board[0] = [
             Rook('black', 'a8'), Knight('black', 'b8'), Bishop('black', 'c8'),
@@ -58,7 +67,6 @@ class Board:
             Queen('white', 'd1'), King('white', 'e1'),
             Bishop('white', 'f1'), Knight('white', 'g1'), Rook('white', 'h1')
         ]
-
 
     def draw_board(self, screen):
         for row in range(8):
@@ -186,7 +194,6 @@ class Board:
 
         return possible_moves
 
-
     def find_king(self, color):
         for row in self.board:
             for piece in row:
@@ -263,7 +270,12 @@ class Board:
                 opponent_color = 'black' if self.turn == 'white' else 'white'
                 if self.is_in_checkmate(opponent_color):
                     print(f"Checkmate! {self.turn.capitalize()} wins!")
-                    exit()
+
+                    self.game_over = True
+                    self.popup_message = f"Checkmate! {self.turn.capitalize()} wins!"
+                    self.draw_popup = True  # Use draw_popup to display the end-game popup
+                    self.resign_popup = True
+
                 self.switch_turn()
         else:
             print("Invalid move: either it's not your turn or the move is invalid.")
