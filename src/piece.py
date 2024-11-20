@@ -76,7 +76,7 @@ class King(Piece):
         col_diff = abs(end_col_pos - start_col_pos)
 
         # Castling logic
-        if abs(start_col_pos - end_col_pos) == 2:  # King moves 2 squares sideways
+        if abs(start_col_pos - end_col_pos) == 2 and start_row_pos == end_row_pos :  # King moves 2 squares sideways
             return self.can_castle(start, end, board, game)
 
         if max(row_diff, col_diff) == 1:
@@ -105,13 +105,18 @@ class King(Piece):
         if self.has_moved:
             return False
 
+        e_row, e_col = pos_to_cords(end)
+        if board[e_row][e_col] != ' ':
+            print(board[e_row][e_col], 'what')
+            return False
+
         # Define rook's start position based on color and side (king or queen side)
         row, col = pos_to_cords(start) # E.G. 7 4
-        rook_col = 7 if end[1] < start[1] else 0  # Queen-side or king-side castling
+        rook_col = 0 if e_col < col else 7  # Queen-side or king-side castling
 
         rook = board[row][rook_col]
         if not isinstance(rook, Rook) or rook.has_moved:
-            print('Castling failed, Rook was moved or is absent!')
+            print('Castling failed, Rook was moved or is absent!', row, rook_col)
             return False
 
         # # Check squares between king and rook are empty

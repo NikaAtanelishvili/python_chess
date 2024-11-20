@@ -68,9 +68,9 @@ class Board:
         # White pieces
         self.board[6] = [Pawn('white', f'{chr(97 + col)}2') for col in range(8)]
         self.board[7] = [
-            Rook('white', 'a1'), Knight('white', 'b1'), Bishop('white', 'c1'),
-            Queen('white', 'd1'), King('white', 'e1'),
-            Bishop('white', 'f1'), Knight('white', 'g1'), Rook('white', 'h1')
+            Rook('white', 'a1'), ' ', ' ',
+            ' ', King('white', 'e1'),
+            ' ', ' ', Rook('white', 'h1')
         ]
 
     def draw_board(self, screen):
@@ -157,6 +157,7 @@ class Board:
         return False
 
     def is_in_checkmate(self, color):
+        print('checkmate fun is running')
         if not self.is_in_check(color):
             return False
 
@@ -196,7 +197,7 @@ class Board:
                 end_pos = cords_to_pos(row, col)
                 if piece.is_valid_move(piece.position, end_pos, self.board, self):
                     possible_moves.append(end_pos)
-
+        print(piece, possible_moves)
         return possible_moves
 
     def find_king(self, color):
@@ -223,10 +224,16 @@ class Board:
                 rook_end_col = 3 if end_col < start_col else 5  # New rook position after castling
 
                 rook = self.board[start_row][rook_start_col]
+                if not isinstance(rook, Rook):
+                    raise ValueError("Invalid rook position for castling.")
+
+                # Move the rook
                 self.board[start_row][rook_end_col] = rook
-                self.board[start_row][rook_start_col] = ' '  # Move the rook to its new position
+                self.board[start_row][rook_start_col] = ' '
                 rook.position = cords_to_pos(start_row, rook_end_col)
-                rook.has_moved = True  # Mark the rook as having moved
+                rook.has_moved = True
+
+                # Mark the king as moved
                 piece.has_moved = True
 
             # Handle en passant
@@ -272,6 +279,7 @@ class Board:
                     './assets/sound_effects/move-self.mp3')  # Replace with your sound file path
 
                 piece.has_moved = True
+                piece.position = end
 
                 # Set check state and start time
                 self.king_in_check = False
@@ -286,7 +294,6 @@ class Board:
                     self.popup_message = f"Checkmate! {self.turn.capitalize()} wins!"
                     self.draw_popup = True  # Use draw_popup to display the end-game popup
                     self.resign_popup = True
-
                 move_sound.play()
                 self.switch_turn()
         else:
