@@ -51,10 +51,15 @@ class Board:
         self.popup_message = ""
         self.game_over = False
 
+        # Popup start for promoting
+        self.promotion_popup = False
+        self.promotion_position = None
+        self.promotion_piece = None
+
 
     def setup_pieces(self):
         self.board[0] = [
-            Rook('black', 'a8'), Knight('black', 'b8'), Bishop('black', 'c8'),
+            ' ', Knight('black', 'b8'), Bishop('black', 'c8'),
             Queen('black', 'd8'), King('black', 'e8'),
             Bishop('black', 'f8'), Knight('black', 'g8'), Rook('black', 'h8')
         ]
@@ -243,7 +248,9 @@ class Board:
 
             # Handle promotion
             if isinstance(piece, Pawn) and piece.is_promotion_square(end_row):
-                self.promote_pawn(end_row, end_col, piece)
+                self.promotion_popup = True
+                self.promotion_position = (end_row, end_col)
+                self.promotion_piece = piece
 
             # Check if king is in check after the move
             if self.is_in_check(self.turn):
@@ -281,24 +288,28 @@ class Board:
             print("Invalid move: either it's not your turn or the move is invalid.")
 
 
+    def promote_pawn_to(self, piece_type):
+        """Finalize the pawn promotion based on the player's choice."""
+        row, col = self.promotion_position
+        color = self.promotion_piece.color
+        position = self.promotion_piece.position
 
-    def promote_pawn(self, row, col, piece):
-        """Promote a pawn to a new piece chosen by the player."""
-        choice = input("Pawn promotion! Choose a piece (q - Queen, r - Rook, b - Bishop, n - Knight):").strip().lower()
+        # Create the new piece
+        if piece_type == "Q":
+            self.board[row][col] = Queen(color, position)
+        elif piece_type == "R":
+            self.board[row][col] = Rook(color, position)
+        elif piece_type == "B":
+            self.board[row][col] = Bishop(color, position)
+        elif piece_type == "N":
+            self.board[row][col] = Knight(color, position)
+        else:
+            self.board[row][col] = Queen(color, position)  # Default to Queen
 
-        match choice:
-
-            case 'q':
-                self.board[row][col] = Queen(piece.color, piece.position)
-            case 'b':
-                self.board[row][col] = Bishop(piece.color, piece.position)
-            case 'n':
-                self.board[row][col] = Knight(piece.color, piece.position)
-            case 'r':
-                self.board[row][col] = Rook(piece.color, piece.position)
-            case _:
-                print("Invalid choice. Defaulting to Queen.")
-                self.board[row][col] = Queen(piece.color, piece.position)
+        # Reset promotion state
+        self.promotion_popup = False
+        self.promotion_position = None
+        self.promotion_piece = None
 
 
     def switch_turn(self):
