@@ -5,8 +5,10 @@ from board import Board, scale_image
 
 def main():
     pygame.init()
+    pygame.mixer.init()
 
     screen = pygame.display.set_mode((800, 900))
+
     pygame.display.set_caption('Chess Game')
 
     board = Board()

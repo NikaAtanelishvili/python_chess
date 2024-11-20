@@ -208,6 +208,7 @@ class Board:
         return None
 
     def move_piece(self, start, end):
+
         """Move a piece from start to end if the move is valid."""
         start_row, start_col = pos_to_cords(start)
         end_row, end_col = pos_to_cords(end)
@@ -267,6 +268,9 @@ class Board:
                 print("Invalid move: your King would be in check.")
             # Check for checkmate after the opponent's move
             else:
+                move_sound = pygame.mixer.Sound(
+                    './assets/sound_effects/move-self.mp3')  # Replace with your sound file path
+
                 piece.has_moved = True
 
                 # Set check state and start time
@@ -283,6 +287,7 @@ class Board:
                     self.draw_popup = True  # Use draw_popup to display the end-game popup
                     self.resign_popup = True
 
+                move_sound.play()
                 self.switch_turn()
         else:
             print("Invalid move: either it's not your turn or the move is invalid.")
